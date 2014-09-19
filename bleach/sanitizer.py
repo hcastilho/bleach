@@ -71,7 +71,8 @@ class BleachSanitizerMixin(HTMLSanitizerMixin):
                         del attrs['xlink:href']
                     if 'style' in attrs:
                         attrs['style'] = self.sanitize_css(attrs['style'])
-                    if self.escapeOnInvalidAttr:
+                    if (self.escapeOnInvalidAttr and
+                            set(dict(token['data']).keys()).difference(attrs.keys())):
                         return escape_token(token)
                     else:
                         token['data'] = [(name, val) for name, val in
