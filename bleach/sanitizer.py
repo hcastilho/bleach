@@ -71,31 +71,22 @@ class BleachSanitizerMixin(HTMLSanitizerMixin):
                         del attrs['xlink:href']
                     if 'style' in attrs:
                         attrs['style'] = self.sanitize_css(attrs['style'])
-                    token['data'] = [(name, val) for name, val in
-                                     attrs.items()]
+                    if self.escapeOnInvalidAttr:
+                        return escape_token(token)
+                    else:
+                        token['data'] = [(name, val) for name, val in
+                                        attrs.items()]
                 return token
             elif self.strip_disallowed_elements:
                 pass
             else:
-                if token['type'] == tokenTypes['EndTag']:
-                    token['data'] = '</{0!s}>'.format(token['name'])
-                elif token['data']:
-                    attr = ' {0!s}="{1!s}"'
-                    attrs = ''.join([attr.format(k, escape(v)) for k, v in
-                                    token['data']])
-                    token['data'] = '<{0!s}{1!s}>'.format(token['name'], attrs)
-                else:
-                    token['data'] = '<{0!s}>'.format(token['name'])
-                if token['selfClosing']:
-                    token['data'] = token['data'][:-1] + '/>'
-                token['type'] = tokenTypes['Characters']
-                del token["name"]
-                return token
+                return escape_token(token)
         elif token['type'] == tokenTypes['Comment']:
             if not self.strip_html_comments:
                 return token
         else:
             return token
+
 
     def sanitize_css(self, style):
         """HTMLSanitizerMixin.sanitize_css replacement.
@@ -135,7 +126,9 @@ class BleachSanitizerMixin(HTMLSanitizerMixin):
 
 class BleachSanitizer(HTMLTokenizer, BleachSanitizerMixin):
     def __init__(self, stream, encoding=None, parseMeta=True, useChardet=True,
-                 lowercaseElementName=True, lowercaseAttrName=True, **kwargs):
+                 lowercaseElementName=True, lowercaseAttrName=True,
+                 escapeOnInvalidAttr=True, **kwargs):
+        self.escapeOnInvalidAttr = escapeOnInvalidAttr
         HTMLTokenizer.__init__(self, stream, encoding, parseMeta, useChardet,
                                lowercaseElementName, lowercaseAttrName,
                                **kwargs)
@@ -145,3 +138,21 @@ class BleachSanitizer(HTMLTokenizer, BleachSanitizerMixin):
             token = self.sanitize_token(token)
             if token:
                 yield token
+
+
+def escape_token(token):
+    if token['type'] == tokenTypes['EndTag']:
+        token['data'] = '</{0!s}>'.format(token['name'])
+    elif token['data']:
+        attr = ' {0!s}="{1!s}"'
+        attrs = ''.join([attr.format(k, escape(v)) for k, v in
+                        token['data']])
+        token['data'] = '<{0!s}{1!s}>'.format(token['name'], attrs)
+    else:
+        token['data'] = '<{0!s}>'.format(token['name'])
+    if token['selfClosing']:
+        token['data'] = token['data'][:-1] + '/>'
+    token['type'] = tokenTypes['Characters']
+    del token["name"]
+    return token
+
