@@ -1,6 +1,6 @@
-======
+=======
 Bleach
-======
+=======
 
 .. image:: https://travis-ci.org/jsocol/bleach.png?branch=master
    :target: https://travis-ci.org/jsocol/bleach
